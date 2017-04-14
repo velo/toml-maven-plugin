@@ -23,16 +23,33 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
+
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Set;
 
-import lombok.AllArgsConstructor;
-
-@AllArgsConstructor
+@Slf4j
+@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Generator {
+
+    private static final List<String> JAVA_KEYWORDS = Arrays.asList("abstract", "assert", "boolean",
+            "break", "byte", "case", "catch", "char", "class", "const",
+            "continue", "default", "do", "double", "else", "extends", "false",
+            "final", "finally", "float", "for", "goto", "if", "implements",
+            "import", "instanceof", "int", "interface", "long", "native",
+            "new", "null", "package", "private", "protected", "public",
+            "return", "short", "static", "strictfp", "super", "switch",
+            "synchronized", "this", "throw", "throws", "transient", "true",
+            "try", "void", "volatile", "while");
 
     private final String fileName;
 
@@ -40,15 +57,21 @@ public class Generator {
 
     private final Toml toml;
 
-    public void generate(File baseDir) throws IOException {
-        File destination = new File(baseDir, packageName.replace(".", "/"));
+    private File outputDirectory;
+
+    public void generate() throws IOException {
+        File destination = new File(outputDirectory, packageName.replace(".", "/"));
 
         destination.mkdirs();
 
         String className = asClassName(fileName);
+        log.info("Generating source for " + className);
 
-        try (FileWriter fw = new FileWriter(new File(destination, className + ".java"));
+        File targetFile = new File(destination, className + ".java");
+        try (FileWriter fw = new FileWriter(targetFile);
                 PrintWriter pw = new PrintWriter(fw);) {
+            log.info("Writting {}.{} at {} ", packageName, className, targetFile.getAbsolutePath());
+
             pw.printf("package %s;", packageName);
             pw.println();
 
@@ -65,19 +88,24 @@ public class Generator {
 
             Set<Entry<String, Object>> entries = toml.entrySet();
             for (Entry<String, Object> entry : entries) {
-                String fieldName = entry.getKey();
+                String fieldName = wrapReservedWords(entry.getKey());
                 Object value = entry.getValue();
 
-                pw.printf("  public %s %s(){\n",
-                        type(fieldName, value, baseDir), fieldName);
+                String type = type(fieldName, value);
+                log.debug("Adding field {}:{}", fieldName, type);
+                pw.printf("  public %s %s(){\n", type, fieldName);
                 pw.printf("    return %s;\n", accessor(fieldName, value));
                 pw.printf("  }\n");
-
-                System.out.println(fieldName + ": " + value.getClass());
             }
 
             pw.printf("}\n", className);
         }
+    }
+
+    private String wrapReservedWords(String key) {
+        if (JAVA_KEYWORDS.contains(key))
+            return key + "_f";
+        return key;
     }
 
     private String accessor(String fieldName, Object value) {
@@ -110,15 +138,15 @@ public class Generator {
     }
 
     private String asClassName(String fileName) {
-        return fileCaseFormat().to(CaseFormat.UPPER_CAMEL, fileName);
+        return fileCaseFormat(fileName).to(CaseFormat.UPPER_CAMEL, fileName);
     }
 
-    private String type(String name, Object value, File basedir) throws IOException {
+    private String type(String name, Object value) throws IOException {
         if (value instanceof com.moandjiezana.toml.Toml) {
             Toml table = (Toml) value;
 
             String subpackage = appendPackage(packageName, this.fileName);
-            new Generator(name, subpackage, table).generate(basedir);
+            new Generator(name, subpackage, table, outputDirectory).generate();
             return subpackage + "." + asClassName(name);
         }
 
@@ -145,6 +173,8 @@ public class Generator {
         if (listTypes.size() == 1)
             return listTypes.iterator().next();
 
+        log.debug("Unable to determine list type for: {}\n got this classes: {}", content, listTypes);
+
         return null;
     }
 
@@ -155,7 +185,7 @@ public class Generator {
         return basePackage + "." + itemToAppend.toLowerCase();
     }
 
-    private CaseFormat fileCaseFormat() {
+    private CaseFormat fileCaseFormat(String fileName) {
         if (fileName.contains("-"))
             return CaseFormat.LOWER_HYPHEN;
         if (fileName.contains("_"))

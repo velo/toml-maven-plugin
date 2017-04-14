@@ -1,3 +1,4 @@
+
 /**
  * Copyright (C) 2017 Marvin Herman Froeder (marvin@marvinformatics.com)
  *
@@ -21,11 +22,17 @@ import java.io.File;
 public class Main {
 
     public static void main(String[] args) throws Exception {
-        final Toml toml = new Toml().read(new File("src/test/resources/wikipedia.toml"));
-        System.out.println(toml.toMap());
+        org.slf4j.impl.StaticLoggerBinder.class.getClass();
+        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "DEBUG");
+        System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
 
-        new Generator("wikipedia", "com.marvinformatics.toml.testing", toml)
-                .generate(new File("target/generate-test-sources/toml"));
+        Generator.builder()
+                .fileName("wikipedia")
+                .packageName("com.marvinformatics.toml.testing")
+                .outputDirectory(new File("target/generate-test-sources/toml"))
+                .toml(new Toml().read(new File("src/test/resources/wikipedia.toml")))
+                .build()
+                .generate();
     }
 
 }
