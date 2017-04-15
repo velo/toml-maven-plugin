@@ -19,6 +19,9 @@ import com.google.common.base.CaseFormat;
 import com.google.common.base.Strings;
 import com.moandjiezana.toml.Toml;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -27,19 +30,12 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.Set;
-
-@Slf4j
-@Builder
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Generator {
+
+    private static final Logger log = LoggerFactory.getLogger(Generator.class);
 
     private static final List<String> JAVA_KEYWORDS = Arrays.asList("abstract", "assert", "boolean",
             "break", "byte", "case", "catch", "char", "class", "const",
@@ -57,7 +53,15 @@ public class Generator {
 
     private final Toml toml;
 
-    private File outputDirectory;
+    private final File outputDirectory;
+
+    public Generator(String fileName, String packageName, Toml toml, File outputDirectory) {
+        super();
+        this.fileName = fileName;
+        this.packageName = packageName;
+        this.toml = toml;
+        this.outputDirectory = outputDirectory;
+    }
 
     public void generate() throws IOException {
         File destination = new File(outputDirectory, packageName.replace(".", "/"));

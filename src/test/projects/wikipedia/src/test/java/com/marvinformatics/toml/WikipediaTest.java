@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.marvinformatics.toml.testing;
+package com.marvinformatics.toml;
 
 import com.google.common.collect.Lists;
 import com.moandjiezana.toml.Toml;
@@ -30,7 +30,7 @@ public class WikipediaTest {
 
     @Before
     public void setup() {
-        final Toml toml = new Toml().read(new File("src/test/resources/wikipedia.toml"));
+        final Toml toml = new Toml().read(new File("src/main/resources/wikipedia.toml"));
 
         wikipedia = new Wikipedia(toml);
     }
@@ -64,8 +64,8 @@ public class WikipediaTest {
 
         Assertions.assertThat(wikipedia.clients().data())
                 .contains(
-                        Lists.newArrayList("gamma", "delta"),
-                        Lists.newArrayList(1L, 2L));
+                        Lists.<Object> newArrayList("gamma", "delta"),
+                        Lists.<Object> newArrayList(1L, 2L));
     }
 
     @Test
