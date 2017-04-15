@@ -20,8 +20,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
-import java.io.File;
-
 import io.takari.maven.testing.TestResources;
 import io.takari.maven.testing.executor.MavenRuntime;
 import io.takari.maven.testing.executor.MavenRuntime.MavenRuntimeBuilder;
@@ -46,7 +44,7 @@ public class GeneratorMojoIntegrationTest {
 
     @Test
     public void success() throws Exception {
-        File projectDir = maven.forProject(resources.getBasedir("wikipedia"))
+        maven.forProject(resources.getBasedir("wikipedia"))
                 .withCliOption("-X")
                 .execute("install")
                 .assertErrorFreeLog()
