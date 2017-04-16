@@ -15,10 +15,13 @@
  */
 package com.marvinformatics.toml;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+
+import java.io.File;
 
 import io.takari.maven.testing.TestResources;
 import io.takari.maven.testing.executor.MavenRuntime;
@@ -27,7 +30,7 @@ import io.takari.maven.testing.executor.MavenVersions;
 import io.takari.maven.testing.executor.junit.MavenJUnitTestRunner;
 
 @RunWith(MavenJUnitTestRunner.class)
-@MavenVersions({ "3.2.3", "3.3.9" })
+@MavenVersions({ "3.3.9" })
 public class GeneratorMojoIntegrationTest {
 
     @Rule
@@ -53,6 +56,25 @@ public class GeneratorMojoIntegrationTest {
                 .assertLogText("Writting com.marvinformatics.toml.wikipedia.Owner")
                 .assertLogText("Writting com.marvinformatics.toml.wikipedia.Database")
                 .getBasedir();
+    }
+
+    @Test
+    public void toml4jExamples() throws Exception {
+        File project = maven.forProject(resources.getBasedir("toml4j"))
+                .withCliOption("-X")
+                .execute("com.marvinformatics.toml:toml-maven-plugin:test-generate",
+                        "test-compile",
+                        "-Dtoml.excludes=**/invalid/*,**/valid/*,**/hard_example_errors.toml")
+                .assertErrorFreeLog()
+                .assertLogText("toml-maven-plugin:0.1-SNAPSHOT:test-generate")
+                .getBasedir();
+
+        File classes = new File(project, "target/test-classes");
+        Assertions.assertThat(classes)
+                .exists();
+        File hardBit = new File(classes, "com/marvinformatics/toml/hard_example/the/hard/Bit.class");
+        Assertions.assertThat(hardBit)
+                .exists();
     }
 
 }

@@ -97,7 +97,7 @@ public class Generator {
 
                 String type = type(fieldName, value);
                 log.debug("Adding field {}:{}", fieldName, type);
-                pw.printf("  public %s %s(){\n", type, fieldName);
+                pw.printf("  public %s %s(){\n", type, fieldName.replaceAll("\\W", ""));
                 pw.printf("    return %s;\n", accessor(fieldName, value));
                 pw.printf("  }\n");
             }
@@ -112,7 +112,8 @@ public class Generator {
         return key;
     }
 
-    private String accessor(String fieldName, Object value) {
+    private String accessor(String propertyName, Object value) {
+        String fieldName = propertyName.replace("\"", "\\\"");
         if (value instanceof String)
             return String.format("toml.getString(\"%s\")", fieldName);
 
@@ -142,7 +143,7 @@ public class Generator {
     }
 
     private String asClassName(String fileName) {
-        return fileCaseFormat(fileName).to(CaseFormat.UPPER_CAMEL, fileName);
+        return fileCaseFormat(fileName).to(CaseFormat.UPPER_CAMEL, fileName.replaceAll("\\W", ""));
     }
 
     private String type(String name, Object value) throws IOException {

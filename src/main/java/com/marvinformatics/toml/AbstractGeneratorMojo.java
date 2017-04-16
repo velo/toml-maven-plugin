@@ -40,19 +40,19 @@ public abstract class AbstractGeneratorMojo extends AbstractMojo {
     @Parameter(defaultValue = "${basedir}", readonly = true)
     private File basedir;
 
-    @Parameter(defaultValue = "com.marvinformatics.toml")
+    @Parameter(defaultValue = "com.marvinformatics.toml", property = "package")
     private String packageName;
 
-    @Parameter
+    @Parameter(property = "toml.sources")
     private List<File> sourceDirectories;
 
-    @Parameter(defaultValue = "**/*.toml")
+    @Parameter(defaultValue = "**/*.toml", property = "toml.includes")
     private String[] includes;
 
-    @Parameter
+    @Parameter(property = "toml.excludes")
     private String[] excludes;
 
-    @Parameter(defaultValue = "false", alias = "toml.skip")
+    @Parameter(defaultValue = "false", property = "toml.skip")
     private boolean skip;
 
     public AbstractGeneratorMojo() {

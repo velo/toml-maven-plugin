@@ -255,7 +255,7 @@
         <configuration>
           <sourceDirectory>${project.basedir}</sourceDirectory>
           <excludes>
-            <exclude>**/src/test/resources/**</exclude>
+            <exclude>**/src/test/projects/**</exclude>
             <exclude>**/target/**</exclude>
           </excludes>
           <lineEnding>LF</lineEnding>
