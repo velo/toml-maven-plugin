@@ -15,8 +15,6 @@
  */
 package com.marvinformatics.toml;
 
-import static com.google.common.base.Charsets.UTF_8;
-
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Strings;
 import com.moandjiezana.toml.Toml;
@@ -25,11 +23,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class Generator {
@@ -59,22 +54,24 @@ public class Generator {
 
     private final Toml toml;
 
-    private final File outputDirectory;
-
     private final OutputCreator fileStreamCreator;
+    private final ConfigSource config;
 
-    public Generator(String fileName, String packageName, Toml toml, File outputDirectory,
-            OutputCreator fileStreamCreator) {
+    public Generator(String fileName,
+            String packageName,
+            Toml toml,
+            OutputCreator fileStreamCreator,
+            ConfigSource config) {
         super();
         this.fileName = fileName;
         this.packageName = packageName;
         this.toml = toml;
-        this.outputDirectory = outputDirectory;
         this.fileStreamCreator = fileStreamCreator;
+        this.config = config;
     }
 
     public void generate() throws IOException {
-        final File destination = new File(outputDirectory, packageName.replace(".", "/"));
+        final File destination = new File(config.outputDirectory(), packageName.replace(".", "/"));
 
         destination.mkdirs();
 
@@ -83,7 +80,7 @@ public class Generator {
 
         File targetFile = new File(destination, className + ".java");
         try (OutputStream fileStrean = fileStreamCreator.openStream(targetFile);
-                PrintWriter pw = new PrintWriter(new OutputStreamWriter(fileStrean, UTF_8));) {
+                PrintWriter pw = new PrintWriter(new OutputStreamWriter(fileStrean, config.encoding()));) {
             log.info("Writting {}.{} at {} ", packageName, className, targetFile.getAbsolutePath());
 
             pw.printf("package %s;", packageName);
@@ -111,7 +108,10 @@ public class Generator {
 
             Set<Entry<String, Object>> entries = toml.entrySet();
             for (Entry<String, Object> entry : entries) {
-                String fieldName = wrapReservedWords(entry.getKey());
+                String fieldName = wrapReservedWords(config
+                        .fieldCase(fileCaseFormat(entry.getKey()))
+                        .to(CaseFormat.LOWER_CAMEL, entry.getKey()));
+
                 Object value = entry.getValue();
 
                 String type = type(fieldName, value, false);
@@ -126,6 +126,12 @@ public class Generator {
                 pw.printf("  }\n");
                 pw.println();
             }
+
+            pw.printf("  public java.util.Set<java.util.Map.Entry<java.lang.String,java.lang.Object>> entries() {\n",
+                    className, className);
+            pw.printf("    return this.toml.entrySet();\n", className);
+            pw.printf("  }\n", className);
+            pw.println();
 
             pw.printf("}\n", className);
         }
@@ -198,7 +204,9 @@ public class Generator {
     }
 
     private String asClassName(String fileName) {
-        return fileCaseFormat(fileName).to(CaseFormat.UPPER_CAMEL, fileName.replaceAll("\\W", ""));
+        return config.classPrefix() +
+                config.tableCase(fileCaseFormat(fileName)).to(CaseFormat.UPPER_CAMEL, fileName.replaceAll("\\W", "")) +
+                config.classSuffix();
     }
 
     private String type(String name, Object value, boolean asParameter) throws IOException {
@@ -206,7 +214,7 @@ public class Generator {
             Toml table = (Toml) value;
 
             String subpackage = appendPackage(packageName, this.fileName);
-            new Generator(name, subpackage, table, outputDirectory, fileStreamCreator).generate();
+            new Generator(name, subpackage, table, fileStreamCreator, config).generate();
             return subpackage + "." + asClassName(name);
         }
 

@@ -29,7 +29,7 @@ public class GeneratorMojo extends AbstractGeneratorMojo {
     @Parameter(defaultValue = "${project.resources}", readonly = true)
     private List<Resource> resources;
 
-    @Parameter(defaultValue = "${project.build.directory}/generate-sources/toml")
+    @Parameter(defaultValue = "${project.build.directory}/generated-sources/toml", property = "toml.outputDirectory")
     private File outputDirectory;
 
     protected void addToSources() {
@@ -42,7 +42,7 @@ public class GeneratorMojo extends AbstractGeneratorMojo {
     }
 
     @Override
-    protected File outputDirectory() {
+    public File outputDirectory() {
         return outputDirectory;
     }
 

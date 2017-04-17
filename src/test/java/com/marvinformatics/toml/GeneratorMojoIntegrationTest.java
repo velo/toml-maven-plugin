@@ -52,9 +52,9 @@ public class GeneratorMojoIntegrationTest {
                 .execute("install")
                 .assertErrorFreeLog()
                 .assertLogText("toml-maven-plugin:0.1-SNAPSHOT:generate")
-                .assertLogText("Writting com.marvinformatics.toml.Wikipedia")
-                .assertLogText("Writting com.marvinformatics.toml.wikipedia.Owner")
-                .assertLogText("Writting com.marvinformatics.toml.wikipedia.Database")
+                .assertLogText("Writting com.marvinformatics.toml.TOMLWikipediaConfig")
+                .assertLogText("Writting com.marvinformatics.toml.wikipedia.TOMLOwnerConfig")
+                .assertLogText("Writting com.marvinformatics.toml.wikipedia.TOMLDatabaseConfig")
                 .getBasedir();
     }
 

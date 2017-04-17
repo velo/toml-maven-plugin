@@ -15,7 +15,7 @@
  */
 package com.marvinformatics.toml;
 
-import com.marvinformatics.toml.wikipedia.Owner;
+import com.marvinformatics.toml.wikipedia.TOMLOwnerConfig;
 import com.moandjiezana.toml.Toml;
 
 import org.assertj.core.api.Assertions;
@@ -24,13 +24,13 @@ import org.junit.Test;
 
 public class WikipediaDefaultedTest {
 
-    private Wikipedia wikipedia;
+    private TOMLWikipediaConfig wikipedia;
 
     @Before
     public void setup() {
         final Toml toml = new Toml().read("a = 1");
 
-        wikipedia = new Wikipedia(toml);
+        wikipedia = new TOMLWikipediaConfig(toml);
     }
 
     @Test
@@ -41,7 +41,7 @@ public class WikipediaDefaultedTest {
 
     @Test
     public void owner() {
-        final Owner fallbackOwner = new Owner(new Toml().read("a = 1"));
+        final TOMLOwnerConfig fallbackOwner = new TOMLOwnerConfig(new Toml().read("a = 1"));
         Assertions.assertThat(wikipedia.owner(fallbackOwner))
                 .isNotNull();
 

@@ -29,8 +29,8 @@ public class TestGeneratorMojo extends AbstractGeneratorMojo {
     @Parameter(defaultValue = "${project.testResources}", readonly = true)
     private List<Resource> testResources;
 
-    @Parameter(defaultValue = "${project.build.directory}/generate-test-sources/toml")
-    private File outputDirectory;
+    @Parameter(defaultValue = "${project.build.directory}/generated-test-sources/toml", property = "toml.testOutputDirectory")
+    private File testOutputDirectory;
 
     protected void addToSources() {
         project.addTestCompileSourceRoot(outputDirectory().getAbsolutePath());
@@ -40,8 +40,8 @@ public class TestGeneratorMojo extends AbstractGeneratorMojo {
         return testResources;
     }
 
-    protected File outputDirectory() {
-        return outputDirectory;
+    public File outputDirectory() {
+        return testOutputDirectory;
     }
 
 }

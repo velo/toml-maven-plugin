@@ -15,6 +15,9 @@
  */
 package com.marvinformatics.toml;
 
+import com.google.common.base.CaseFormat;
+import com.google.common.base.Charsets;
+import com.google.common.base.Strings;
 import com.moandjiezana.toml.Toml;
 
 import org.apache.maven.model.Resource;
@@ -30,11 +33,16 @@ import org.sonatype.plexus.build.incremental.BuildContext;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-public abstract class AbstractGeneratorMojo extends AbstractMojo {
+public abstract class AbstractGeneratorMojo extends AbstractMojo implements ConfigSource {
+
+    @Component
+    private BuildContext buildContext;
 
     @Parameter(defaultValue = "${project}", readonly = true)
     protected MavenProject project;
@@ -42,7 +50,7 @@ public abstract class AbstractGeneratorMojo extends AbstractMojo {
     @Parameter(defaultValue = "${basedir}", readonly = true)
     private File basedir;
 
-    @Parameter(defaultValue = "com.marvinformatics.toml", property = "package")
+    @Parameter(defaultValue = "com.marvinformatics.toml", property = "toml.package")
     private String packageName;
 
     @Parameter(property = "toml.sources")
@@ -57,8 +65,20 @@ public abstract class AbstractGeneratorMojo extends AbstractMojo {
     @Parameter(defaultValue = "false", property = "toml.skip")
     private boolean skip;
 
-    @Component
-    private BuildContext buildContext;
+    @Parameter(defaultValue = "", property = "toml.classPrefix")
+    private String classPrefix;
+
+    @Parameter(defaultValue = "", property = "toml.classSuffix")
+    private String classSuffix;
+
+    @Parameter(defaultValue = "${project.build.sourceEncoding}", property = "toml.encoding")
+    private String encoding;
+
+    @Parameter(defaultValue = "LOWER_UNDERSCORE", property = "toml.tableCase")
+    private String tableCase;
+
+    @Parameter(defaultValue = "LOWER_UNDERSCORE", property = "toml.fieldCase")
+    private String fieldCase;
 
     public AbstractGeneratorMojo() {
         super();
@@ -108,11 +128,10 @@ public abstract class AbstractGeneratorMojo extends AbstractMojo {
 
             try {
                 new Generator(FileUtils.basename(tomlFile.getName()).replaceAll("\\W", ""),
-                        packageName,
+                        packageName(),
                         toml,
-                        outputDirectory(),
-                        file -> buildContext.newFileOutputStream(file))
-                                .generate();
+                        file -> buildContext.newFileOutputStream(file),
+                        this).generate();
             } catch (IOException e) {
                 throw new MojoExecutionException("Unable to generate java sources for: " + tomlFile, e);
             }
@@ -124,8 +143,49 @@ public abstract class AbstractGeneratorMojo extends AbstractMojo {
 
     protected abstract void addToSources();
 
-    protected abstract File outputDirectory();
-
     protected abstract List<Resource> resources();
+
+    @Override
+    public String classPrefix() {
+        return Optional.ofNullable(classPrefix)
+                .orElse("");
+    }
+
+    public String packageName() {
+        return Optional.ofNullable(packageName)
+                .filter(string -> !Strings.isNullOrEmpty(string))
+                .orElse("com.marvinformatics.toml");
+    }
+
+    @Override
+    public String classSuffix() {
+        return Optional.ofNullable(classSuffix)
+                .orElse("");
+    }
+
+    @Override
+    public Charset encoding() {
+        return Optional.ofNullable(encoding)
+                .filter(string -> !Strings.isNullOrEmpty(string))
+                .map(encoding -> Charset.forName(encoding))
+                .orElse(Charsets.UTF_8);
+    }
+
+    @Override
+    public CaseFormat tableCase(CaseFormat tableCase) {
+        return caseOf(this.tableCase, tableCase);
+    }
+
+    @Override
+    public CaseFormat fieldCase(CaseFormat fieldCase) {
+        return caseOf(this.fieldCase, fieldCase);
+    }
+
+    private CaseFormat caseOf(String caseFormat, CaseFormat defaultCaseFormat) {
+        return Optional.ofNullable(caseFormat)
+                .filter(string -> !Strings.isNullOrEmpty(string))
+                .map(value -> CaseFormat.valueOf(value))
+                .orElse(defaultCaseFormat);
+    }
 
 }

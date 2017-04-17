@@ -26,13 +26,13 @@ import java.io.File;
 
 public class WikipediaTest {
 
-    private Wikipedia wikipedia;
+    private TOMLWikipediaConfig wikipedia;
 
     @Before
     public void setup() {
         final Toml toml = new Toml().read(new File("src/main/resources/wikipedia.toml"));
 
-        wikipedia = new Wikipedia(toml);
+        wikipedia = new TOMLWikipediaConfig(toml);
     }
 
     @Test
@@ -54,6 +54,7 @@ public class WikipediaTest {
                 .hasMonth(05);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void clients() {
         Assertions.assertThat(wikipedia.clients())
