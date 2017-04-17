@@ -108,21 +108,21 @@ public class Generator {
 
             Set<Entry<String, Object>> entries = toml.entrySet();
             for (Entry<String, Object> entry : entries) {
-                String fieldName = wrapReservedWords(config
+                String fieldName = escapeReservedWords(config
                         .fieldCase(fileCaseFormat(entry.getKey()))
                         .to(CaseFormat.LOWER_CAMEL, entry.getKey()));
 
                 Object value = entry.getValue();
 
-                String type = type(fieldName, value, false);
+                String type = type(entry.getKey(), value, false);
                 log.debug("Adding field {}:{}", fieldName, type);
                 pw.printf("  public %s %s(){\n", type, fieldName.replaceAll("\\W", ""));
-                pw.printf("    return %s;\n", accessor(fieldName, value));
+                pw.printf("    return %s;\n", accessor(entry.getKey(), value));
                 pw.printf("  }\n");
 
                 pw.printf("  public %s %s(%s defaultValue){\n", type, fieldName.replaceAll("\\W", ""),
-                        type(fieldName, value, true));
-                pw.printf("    return %s;\n", defaultValueAccessor(fieldName, value));
+                        type(entry.getKey(), value, true));
+                pw.printf("    return %s;\n", defaultValueAccessor(entry.getKey(), value));
                 pw.printf("  }\n");
                 pw.println();
             }
@@ -137,9 +137,9 @@ public class Generator {
         }
     }
 
-    private String wrapReservedWords(String key) {
-        if (JAVA_KEYWORDS.contains(key))
-            return key + "_f";
+    private String escapeReservedWords(String key) {
+        if (JAVA_KEYWORDS.contains(key.toLowerCase()))
+            return key + "F";
         return key;
     }
 
@@ -204,9 +204,9 @@ public class Generator {
     }
 
     private String asClassName(String fileName) {
-        return config.classPrefix() +
+        return escapeReservedWords(config.classPrefix() +
                 config.tableCase(fileCaseFormat(fileName)).to(CaseFormat.UPPER_CAMEL, fileName.replaceAll("\\W", "")) +
-                config.classSuffix();
+                config.classSuffix());
     }
 
     private String type(String name, Object value, boolean asParameter) throws IOException {
@@ -250,10 +250,11 @@ public class Generator {
     }
 
     private String appendPackage(String basePackage, String itemToAppend) {
+        String item = escapeReservedWords(itemToAppend.toLowerCase());
         if (Strings.isNullOrEmpty(basePackage))
-            return itemToAppend.toLowerCase();
+            return item;
 
-        return basePackage + "." + itemToAppend.toLowerCase();
+        return basePackage + "." + item;
     }
 
     private CaseFormat fileCaseFormat(String fileName) {
