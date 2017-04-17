@@ -7,6 +7,7 @@ jdk:
   - oraclejdk8
 
 install:
+  - git submodule update --remote
   - mvn install dependency:go-offline -Pskip-formatter -DskipTests=true -fn -q
 
 script:
