@@ -15,6 +15,8 @@
  */
 package com.marvinformatics.toml;
 
+import static com.google.common.base.Charsets.UTF_8;
+
 import com.google.common.base.CaseFormat;
 import com.google.common.base.Strings;
 import com.moandjiezana.toml.Toml;
@@ -22,10 +24,7 @@ import com.moandjiezana.toml.Toml;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -34,6 +33,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class Generator {
+
+    @FunctionalInterface
+    public static interface OutputCreator {
+
+        OutputStream openStream(File file) throws IOException;
+
+    }
 
     private static final Logger log = LoggerFactory.getLogger(Generator.class);
 
@@ -55,16 +61,20 @@ public class Generator {
 
     private final File outputDirectory;
 
-    public Generator(String fileName, String packageName, Toml toml, File outputDirectory) {
+    private final OutputCreator fileStreamCreator;
+
+    public Generator(String fileName, String packageName, Toml toml, File outputDirectory,
+            OutputCreator fileStreamCreator) {
         super();
         this.fileName = fileName;
         this.packageName = packageName;
         this.toml = toml;
         this.outputDirectory = outputDirectory;
+        this.fileStreamCreator = fileStreamCreator;
     }
 
     public void generate() throws IOException {
-        File destination = new File(outputDirectory, packageName.replace(".", "/"));
+        final File destination = new File(outputDirectory, packageName.replace(".", "/"));
 
         destination.mkdirs();
 
@@ -72,8 +82,8 @@ public class Generator {
         log.info("Generating source for " + className);
 
         File targetFile = new File(destination, className + ".java");
-        try (FileWriter fw = new FileWriter(targetFile);
-                PrintWriter pw = new PrintWriter(fw);) {
+        try (OutputStream fileStrean = fileStreamCreator.openStream(targetFile);
+                PrintWriter pw = new PrintWriter(new OutputStreamWriter(fileStrean, UTF_8));) {
             log.info("Writting {}.{} at {} ", packageName, className, targetFile.getAbsolutePath());
 
             pw.printf("package %s;", packageName);
@@ -196,7 +206,7 @@ public class Generator {
             Toml table = (Toml) value;
 
             String subpackage = appendPackage(packageName, this.fileName);
-            new Generator(name, subpackage, table, outputDirectory).generate();
+            new Generator(name, subpackage, table, outputDirectory, fileStreamCreator).generate();
             return subpackage + "." + asClassName(name);
         }
 

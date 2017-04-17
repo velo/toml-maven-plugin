@@ -21,10 +21,12 @@ import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.DirectoryScanner;
 import org.codehaus.plexus.util.FileUtils;
+import org.sonatype.plexus.build.incremental.BuildContext;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,6 +56,9 @@ public abstract class AbstractGeneratorMojo extends AbstractMojo {
 
     @Parameter(defaultValue = "false", property = "toml.skip")
     private boolean skip;
+
+    @Component
+    private BuildContext buildContext;
 
     public AbstractGeneratorMojo() {
         super();
@@ -89,6 +94,7 @@ public abstract class AbstractGeneratorMojo extends AbstractMojo {
                     return Arrays.asList(scanner.getIncludedFiles()).stream()
                             .map(file -> new File(directory, file));
                 })
+                .filter(file -> buildContext.hasDelta(file))
                 .peek(file -> getLog().debug("Toml file: " + file.getAbsolutePath()))
                 .collect(Collectors.toList());
 
@@ -104,7 +110,8 @@ public abstract class AbstractGeneratorMojo extends AbstractMojo {
                 new Generator(FileUtils.basename(tomlFile.getName()).replaceAll("\\W", ""),
                         packageName,
                         toml,
-                        outputDirectory())
+                        outputDirectory(),
+                        file -> buildContext.newFileOutputStream(file))
                                 .generate();
             } catch (IOException e) {
                 throw new MojoExecutionException("Unable to generate java sources for: " + tomlFile, e);
