@@ -308,6 +308,7 @@
             <exclude>**/README</exclude>
             <exclude>src/test/resources/**</exclude>
             <exclude>src/main/resources/**</exclude>
+            <exclude>src/test/projects/**</exclude>
           </excludes>
         </configuration>
         <executions>

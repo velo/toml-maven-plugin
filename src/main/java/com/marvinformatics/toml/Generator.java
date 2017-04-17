@@ -90,16 +90,31 @@ public class Generator {
             pw.printf("  }\n", className);
             pw.println();
 
+            pw.printf("  public %s (com.moandjiezana.toml.Toml toml, %s defaultValue) {\n", className, className);
+            pw.printf("    if (toml == null) {\n", className);
+            pw.printf("      this.toml = defaultValue.toml;\n", className);
+            pw.printf("    } else {\n", className);
+            pw.printf("      this.toml = toml;\n", className);
+            pw.printf("    }\n", className);
+            pw.printf("  }\n", className);
+            pw.println();
+
             Set<Entry<String, Object>> entries = toml.entrySet();
             for (Entry<String, Object> entry : entries) {
                 String fieldName = wrapReservedWords(entry.getKey());
                 Object value = entry.getValue();
 
-                String type = type(fieldName, value);
+                String type = type(fieldName, value, false);
                 log.debug("Adding field {}:{}", fieldName, type);
                 pw.printf("  public %s %s(){\n", type, fieldName.replaceAll("\\W", ""));
                 pw.printf("    return %s;\n", accessor(fieldName, value));
                 pw.printf("  }\n");
+
+                pw.printf("  public %s %s(%s defaultValue){\n", type, fieldName.replaceAll("\\W", ""),
+                        type(fieldName, value, true));
+                pw.printf("    return %s;\n", defaultValueAccessor(fieldName, value));
+                pw.printf("  }\n");
+                pw.println();
             }
 
             pw.printf("}\n", className);
@@ -139,14 +154,44 @@ public class Generator {
                     fieldName);
         }
 
-        return "juka";
+        throw new IllegalArgumentException("Unable to handle " + value);
+    }
+
+    private String defaultValueAccessor(String propertyName, Object value) {
+        String fieldName = propertyName.replace("\"", "\\\"");
+        if (value instanceof String)
+            return String.format("toml.getString(\"%s\", defaultValue)", fieldName);
+
+        if (value instanceof Boolean)
+            return String.format("toml.getBoolean(\"%s\", defaultValue)", fieldName);
+
+        if (value instanceof Long)
+            return String.format("toml.getLong(\"%s\", defaultValue)", fieldName);
+
+        if (value instanceof Date)
+            return String.format("toml.getDate(\"%s\", defaultValue)", fieldName);
+
+        if (value instanceof Double)
+            return String.format("toml.getDouble(\"%s\", defaultValue)", fieldName);
+
+        if (value instanceof List)
+            return String.format("toml.getList(\"%s\", defaultValue)", fieldName);
+
+        if (value instanceof Toml) {
+            String subpackage = appendPackage(packageName, this.fileName);
+            return String.format("new %s(toml.getTable(\"%s\"), defaultValue)",
+                    subpackage + "." + asClassName(fieldName),
+                    fieldName);
+        }
+
+        throw new IllegalArgumentException("Unable to handle " + value);
     }
 
     private String asClassName(String fileName) {
         return fileCaseFormat(fileName).to(CaseFormat.UPPER_CAMEL, fileName.replaceAll("\\W", ""));
     }
 
-    private String type(String name, Object value) throws IOException {
+    private String type(String name, Object value, boolean asParameter) throws IOException {
         if (value instanceof com.moandjiezana.toml.Toml) {
             Toml table = (Toml) value;
 
@@ -163,7 +208,10 @@ public class Generator {
             if (listType == null)
                 return "<T> java.util.List<T>";
             if (List.class.isAssignableFrom(listType))
-                return "<T> java.util.List<java.util.List<T>>";
+                if (asParameter)
+                    return "java.util.List<java.util.List<T>>";
+                else
+                    return "<T> java.util.List<java.util.List<T>>";
             else
                 return String.format("java.util.List<%s>", listType.getName());
         }
